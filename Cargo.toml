@@ -1,6 +1,6 @@
 [package]
-name = "tui_misc"
-version = "0.1.0"
+name = "ssr"
+version = "0.2.0"
 edition = "2021"
 
 [dependencies]
@@ -13,4 +13,7 @@ s_text_input_f = "0.3"
 s_text_input_f-parser = "0.1"
 anyhow = "1.0.89"
 
-
+serde_json = "1"
+ssr-core = "0.27"
+ssr-facade = "0.5"
+ssr-algorithms = "0.5"

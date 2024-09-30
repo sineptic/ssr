@@ -2,7 +2,9 @@ use anyhow::Result;
 use ratatui::{prelude::*, widgets::*};
 use ratatui_inputs::ResultKind;
 use s_text_input_f_parser::CorrectBlocks;
+use ssr_core::tasks_facade::TasksFacade;
 use std::io::stdout;
+use std::io::Write;
 
 use ratatui::{prelude::CrosstermBackend, Terminal};
 
@@ -12,7 +14,7 @@ enum Submenu {
     CreateTask,
 }
 
-fn create_paragraph(terminal: &mut Terminal<impl Backend>) -> Result<CorrectBlocks> {
+fn create_task(terminal: &mut Terminal<impl Backend>) -> Result<Option<CorrectBlocks>> {
     Ok(ratatui_inputs::get_blocks(&mut |styled, support_text| {
         let layout = Layout::default()
             .direction(Direction::Horizontal)
@@ -37,20 +39,29 @@ fn create_paragraph(terminal: &mut Terminal<impl Backend>) -> Result<CorrectBloc
                 f.render_widget(ratatui::widgets::Paragraph::new(support_text), support_area);
             })
             .map(|_| ())
-    })?
-    .expect("user should provide input"))
+    })?)
 }
+
+type Task = ssr_algorithms::super_memory_2::WriteAnswer;
+type Facade<'a> = ssr_facade::Facade<'a, Task>;
 
 fn main() -> Result<()> {
     let mut terminal = Terminal::new(CrosstermBackend::new(stdout())).unwrap();
-    let alt = alternate_screen_wrapper::AlternateScreen::enter().unwrap();
+    let alt = alternate_screen_wrapper::AlternateScreen::enter()?.bracketed_paste()?;
 
-    let mut paragraphs = Vec::new();
+    let path = "storage.json";
+    let file = std::fs::read_to_string(path);
+    let mut storage: Facade = if let Ok(file) = &file {
+        serde_json::from_str(file)?
+    } else {
+        Facade::new("test_name".into())
+    };
 
     loop {
         let submenu = {
+            storage.find_tasks_to_recall();
             let request = vec![s_text_input_f::Block::OneOf(vec![
-                "complete task".into(),
+                format!("complete task ({})", storage.tasks_to_complete()),
                 "create task".into(),
             ])];
             let (result_kind, answer) = ratatui_inputs::get_input(request, &mut |text| {
@@ -67,15 +78,33 @@ fn main() -> Result<()> {
             [Submenu::CompleteTask, Submenu::CreateTask][answer]
         };
         match submenu {
-            Submenu::CompleteTask => todo!(),
+            Submenu::CompleteTask => storage
+                .complete_task(&mut |blocks| {
+                    let (_result_kind, answer) = ratatui_inputs::get_input(blocks, &mut |text| {
+                        terminal
+                            .draw(|f| f.render_widget(text, f.area()))
+                            .map(|_| ())
+                    })
+                    .transpose()?
+                    .unwrap_or((ResultKind::Ok, vec![vec![]]));
+                    Ok(answer)
+                })
+                .unwrap(),
             Submenu::CreateTask => {
-                let correct_paragraph = create_paragraph(&mut terminal)?;
-                paragraphs.push(correct_paragraph);
+                let correct_blocks = create_task(&mut terminal)?;
+                if let Some(task) = correct_blocks {
+                    let task = Task::new(task.blocks, task.answer);
+                    storage.insert(task);
+                }
             }
         }
     }
 
     drop(alt);
-    dbg!(paragraphs);
+    writeln!(
+        std::fs::File::create(path)?,
+        "{}",
+        serde_json::to_string_pretty(&storage)?
+    )?;
     Ok(())
 }

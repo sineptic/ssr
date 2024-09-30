@@ -225,6 +225,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "memchr"
+version = "2.7.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "78ca9ab1a0babb1e7d5695e3530886289c18cf2f87ec19a575a0abdce112e3a3"
+
+[[package]]
 name = "mio"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -431,6 +437,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "serde_json"
+version = "1.0.128"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6ff5456707a1de34e7e37f2a6fd3d3f808c318259cbd01ab6377795054b483d8"
+dependencies = [
+ "itoa",
+ "memchr",
+ "ryu",
+ "serde",
+]
+
+[[package]]
 name = "shlex"
 version = "1.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -471,6 +489,56 @@ name = "smallvec"
 version = "1.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3c5e1a9a646d36c3599cd173a41282daf47c44583ad367b8e6837255952e5c67"
+
+[[package]]
+name = "ssr"
+version = "0.1.0"
+dependencies = [
+ "alternate_screen_wrapper",
+ "anyhow",
+ "crossterm",
+ "ratatui",
+ "ratatui_inputs",
+ "s_text_input_f",
+ "s_text_input_f-parser",
+ "serde_json",
+ "ssr-algorithms",
+ "ssr-core",
+ "ssr-facade",
+]
+
+[[package]]
+name = "ssr-algorithms"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "197ae89090c26955540cc3f9d672f1423b994e674d434ddf9ccf01d25ffadf36"
+dependencies = [
+ "s_text_input_f",
+ "serde",
+ "ssr-core",
+]
+
+[[package]]
+name = "ssr-core"
+version = "0.27.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "41809fbbd1e493f0d2ba46ea147910b560c3355f7760379257aed217fe967483"
+dependencies = [
+ "s_text_input_f",
+ "serde",
+ "thiserror",
+]
+
+[[package]]
+name = "ssr-facade"
+version = "0.5.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "66e73c71dbe0293ac9cdbbcc1d31c9452d170749e57023fff8e1f97f1d1f4c58"
+dependencies = [
+ "s_text_input_f",
+ "serde",
+ "ssr-core",
+]
 
 [[package]]
 name = "stacker"
@@ -525,16 +593,23 @@ dependencies = [
 ]
 
 [[package]]
-name = "tui_misc"
-version = "0.1.0"
+name = "thiserror"
+version = "1.0.64"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d50af8abc119fb8bb6dbabcfa89656f46f84aa0ac7688088608076ad2b459a84"
 dependencies = [
- "alternate_screen_wrapper",
- "anyhow",
- "crossterm",
- "ratatui",
- "ratatui_inputs",
- "s_text_input_f",
- "s_text_input_f-parser",
+ "thiserror-impl",
+]
+
+[[package]]
+name = "thiserror-impl"
+version = "1.0.64"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "08904e7672f5eb876eaaf87e0ce17857500934f4981c4a0ab2b4aa98baac7fc3"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
