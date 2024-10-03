@@ -5,10 +5,10 @@ edition = "2021"
 
 [dependencies]
 crossterm = "0.28.1"
-alternate_screen_wrapper = { path="../alternate_screen_wrapper", features = ["crossterm"]}
+alternate_screen_wrapper = { version = "0.1.1", features = ["crossterm"]}
 ratatui = "0.28.1"
 
-ratatui_inputs = { path="../ratatui-inputs", features = ["fast_select_with_enter"] }
+ratatui_inputs = { version = "0.1.3", features = ["fast_select_with_enter"] }
 s_text_input_f = "0.3"
 s_text_input_f-parser = "0.1"
 anyhow = "1.0.89"
