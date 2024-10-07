@@ -1,12 +1,16 @@
 use anyhow::Result;
-use ratatui::{prelude::*, widgets::*};
+use ratatui::{
+    prelude::{CrosstermBackend, *},
+    widgets::*,
+    Terminal,
+};
 use ratatui_inputs::ResultKind;
 use s_text_input_f_parser::CorrectBlocks;
 use ssr_core::tasks_facade::TasksFacade;
-use std::io::stdout;
-use std::io::Write;
+use std::io::{stdout, Write};
 
-use ratatui::{prelude::CrosstermBackend, Terminal};
+type Task = ssr_algorithms::super_memory_2::WriteAnswer;
+type Facade<'a> = ssr_facade::Facade<'a, Task>;
 
 #[derive(Clone, Copy, PartialEq, Debug)]
 enum Submenu {
@@ -41,9 +45,6 @@ fn create_task(terminal: &mut Terminal<impl Backend>) -> Result<Option<CorrectBl
             .map(|_| ())
     })?)
 }
-
-type Task = ssr_algorithms::super_memory_2::WriteAnswer;
-type Facade<'a> = ssr_facade::Facade<'a, Task>;
 
 fn main() -> Result<()> {
     let mut terminal = Terminal::new(CrosstermBackend::new(stdout())).unwrap();
@@ -101,6 +102,12 @@ fn main() -> Result<()> {
     }
 
     drop(alt);
+    save(path, storage)?;
+    Ok(())
+}
+
+// FIXME: first create file, than rename it to `path` to not corrupt data
+fn save(path: &str, storage: Facade) -> Result<()> {
     writeln!(
         std::fs::File::create(path)?,
         "{}",
