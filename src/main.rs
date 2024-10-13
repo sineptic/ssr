@@ -62,7 +62,19 @@ fn main() -> Result<()> {
         let submenu = {
             storage.find_tasks_to_recall();
             let request = vec![s_text_input_f::Block::OneOf(vec![
-                format!("complete task ({})", storage.tasks_to_complete()),
+                format!("complete task ({})", {
+                    let to_complete = storage.tasks_to_complete();
+                    if to_complete > 0 {
+                        to_complete.to_string()
+                    } else {
+                        let until = storage.until_next_repetition();
+                        if let Some(until) = until {
+                            format!("0; {:.2}h", until.as_secs_f64() / 3600.)
+                        } else {
+                            0.to_string()
+                        }
+                    }
+                }),
                 "create task".into(),
             ])];
             let (result_kind, answer) = ratatui_inputs::get_input(request, &mut |text| {
@@ -79,8 +91,8 @@ fn main() -> Result<()> {
             [Submenu::CompleteTask, Submenu::CreateTask][answer]
         };
         match submenu {
-            Submenu::CompleteTask => storage
-                .complete_task(&mut |blocks| {
+            Submenu::CompleteTask => {
+                let _ = storage.complete_task(&mut |blocks| {
                     let (_result_kind, answer) = ratatui_inputs::get_input(blocks, &mut |text| {
                         terminal
                             .draw(|f| f.render_widget(text, f.area()))
@@ -89,8 +101,8 @@ fn main() -> Result<()> {
                     .transpose()?
                     .unwrap_or((ResultKind::Ok, vec![vec![]]));
                     Ok(answer)
-                })
-                .unwrap(),
+                });
+            }
             Submenu::CreateTask => {
                 let correct_blocks = create_task(&mut terminal)?;
                 if let Some(task) = correct_blocks {
