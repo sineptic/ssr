@@ -79,17 +79,18 @@ fn main() -> Result<ExitCode> {
                 match a {
                     Ok(blocks) => {
                         if blocks.answer.iter().map(|x| x.len()).sum::<usize>() == 0 {
-                            eprintln!("Task must contain interactive elements.");
+                            println!("Task must contain interactive elements.");
                             false
                         } else {
                             let task = Task::new(blocks.blocks, blocks.answer);
                             storage.insert(task);
+                            println!("Task added");
                             true
                         }
                     }
                     Err(errs) => {
                         for err in errs {
-                            eprintln!("Parsing error: {err}.");
+                            println!("Parsing error: {err}.");
                         }
                         false
                     }
