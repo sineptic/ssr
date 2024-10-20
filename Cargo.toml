@@ -1,6 +1,6 @@
 [package]
 name = "ssr"
-version = "0.2.1"
+version = "0.2.2"
 edition = "2021"
 
 [dependencies]
@@ -17,3 +17,4 @@ serde_json = "1"
 ssr-core = "0.27"
 ssr-facade = "0.5"
 ssr-algorithms = "0.5"
+clap = { version = "4.5.20", features = ["derive", "string"] }
