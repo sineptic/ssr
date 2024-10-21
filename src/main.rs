@@ -102,7 +102,7 @@ fn main() -> Result<ExitCode> {
         true
     };
 
-    save(path, storage)?;
+    save(path, &storage)?;
 
     if success {
         Ok(ExitCode::SUCCESS)
@@ -180,11 +180,11 @@ fn complete_task(
 }
 
 // FIXME: first create file, than rename it to `path` to not corrupt data
-fn save(path: &str, storage: Facade) -> Result<()> {
+fn save(path: &str, storage: &Facade) -> Result<()> {
     writeln!(
         std::fs::File::create(path)?,
         "{}",
-        serde_json::to_string_pretty(&storage)?
+        serde_json::to_string_pretty(storage)?
     )?;
     Ok(())
 }
