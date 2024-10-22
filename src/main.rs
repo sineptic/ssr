@@ -167,8 +167,12 @@ fn complete_task(
     storage: &mut ssr_facade::Facade<'_, ssr_algorithms::super_memory_2::WriteAnswer>,
     terminal: &mut Terminal<CrosstermBackend<std::io::Stdout>>,
 ) {
-    let _ = storage.complete_task(&mut |blocks| {
-        let (_result_kind, answer) = ratatui_inputs::get_input(blocks, &mut |text| {
+    let _ = storage.complete_task(&mut |id, blocks| {
+        let (_result_kind, answer) = ratatui_inputs::get_input(blocks, &mut |mut text| {
+            use ratatui::style::Stylize;
+            text.push_line("");
+            text.push_line(format!("ID {id}").dark_gray().italic());
+
             terminal
                 .draw(|f| f.render_widget(text, f.area()))
                 .map(|_| ())
