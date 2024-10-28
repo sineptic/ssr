@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{ensure, Result};
 use ratatui::{
     prelude::{CrosstermBackend, *},
     widgets::*,
@@ -12,42 +12,8 @@ use std::{
     process::ExitCode,
 };
 
-type Task = ssr_algorithms::super_memory_2::WriteAnswer;
+type Task = ssr_algorithms::fsrs::Task;
 type Facade<'a> = ssr_facade::Facade<'a, Task>;
-
-#[derive(Clone, Copy, PartialEq, Debug)]
-enum Submenu {
-    CompleteTask,
-    CreateTask,
-}
-
-fn create_task(terminal: &mut Terminal<impl Backend>) -> Result<Option<CorrectBlocks>> {
-    Ok(ratatui_inputs::get_blocks(&mut |styled, support_text| {
-        let layout = Layout::default()
-            .direction(Direction::Horizontal)
-            .constraints([Constraint::Fill(1), Constraint::Fill(1)]);
-        terminal
-            .draw(|f| {
-                let layout = layout.split(f.area());
-
-                let input_block = ratatui::widgets::Block::bordered()
-                    .border_type(ratatui::widgets::BorderType::Rounded);
-                let input_area = input_block.inner(layout[0]);
-
-                let support_block = ratatui::widgets::Block::new().padding(Padding::uniform(1));
-                let support_area = support_block.inner(layout[1]);
-
-                f.render_widget(input_block, layout[0]);
-                f.render_widget(
-                    ratatui::widgets::Paragraph::new(styled).wrap(Wrap { trim: true }),
-                    input_area,
-                );
-                f.render_widget(support_block, layout[1]);
-                f.render_widget(ratatui::widgets::Paragraph::new(support_text), support_area);
-            })
-            .map(|_| ())
-    })?)
-}
 
 use clap::{Parser, Subcommand};
 #[derive(Parser, Debug)]
@@ -61,16 +27,23 @@ enum Action {
     Add { content: String },
 }
 
+const PATH: &str = "storage.json";
+
 fn main() -> Result<ExitCode> {
     let args = Args::parse();
 
-    let path = "storage.json";
-    let file = std::fs::read_to_string(path);
+    const DEFAULT_DESIRED_RETENTION: f64 = 0.85;
+    let file = std::fs::read_to_string(PATH);
     let mut storage: Facade = if let Ok(file) = &file {
         serde_json::from_str(file)?
     } else {
-        Facade::new("test_name".into())
+        Facade::new("test_name".into(), DEFAULT_DESIRED_RETENTION)
     };
+
+    // storage
+    //     .complete_task(&mut |_id, _text| Ok(vec![vec!["world".into()]]))
+    //     .unwrap();
+    // let success = true;
 
     let success = if let Some(action) = args.action {
         match action {
@@ -102,7 +75,7 @@ fn main() -> Result<ExitCode> {
         true
     };
 
-    save(path, &storage)?;
+    save(PATH, &storage)?;
 
     if success {
         Ok(ExitCode::SUCCESS)
@@ -110,6 +83,15 @@ fn main() -> Result<ExitCode> {
         Ok(ExitCode::FAILURE)
     }
 }
+
+#[derive(Clone, Copy, PartialEq, Debug)]
+enum Submenu {
+    CompleteTask,
+    CreateTask,
+    ModifyDesiredRetention,
+    Save,
+}
+
 fn application(storage: &mut Facade) -> Result<()> {
     let mut terminal = Terminal::new(CrosstermBackend::new(stdout())).unwrap();
     let alt = alternate_screen_wrapper::AlternateScreen::enter()?.bracketed_paste()?;
@@ -132,7 +114,13 @@ fn application(storage: &mut Facade) -> Result<()> {
                     }
                 }),
                 "create task".into(),
+                format!(
+                    "desired retention ({}%)",
+                    storage.get_desired_retention() * 100.
+                ),
+                "save".into(),
             ])];
+            // TODO: optimize params
             let (result_kind, answer) = ratatui_inputs::get_input(request, &mut |text| {
                 terminal
                     .draw(|f| f.render_widget(Paragraph::new(text), f.area()))
@@ -144,7 +132,12 @@ fn application(storage: &mut Facade) -> Result<()> {
                 break;
             }
             let answer: usize = answer[0][0].parse()?;
-            [Submenu::CompleteTask, Submenu::CreateTask][answer]
+            [
+                Submenu::CompleteTask,
+                Submenu::CreateTask,
+                Submenu::ModifyDesiredRetention,
+                Submenu::Save,
+            ][answer]
         };
         match submenu {
             Submenu::CompleteTask => {
@@ -157,16 +150,93 @@ fn application(storage: &mut Facade) -> Result<()> {
                     storage.insert(task);
                 }
             }
+            Submenu::ModifyDesiredRetention => {
+                if let Some(desired_retention) = get_desired_retention(&mut terminal)? {
+                    storage.set_desired_retention(desired_retention);
+                }
+            }
+            Submenu::Save => save(PATH, storage)?,
         }
     }
     drop(alt);
     Ok(())
 }
 
-fn complete_task(
-    storage: &mut ssr_facade::Facade<'_, ssr_algorithms::super_memory_2::WriteAnswer>,
-    terminal: &mut Terminal<CrosstermBackend<std::io::Stdout>>,
-) {
+fn get_desired_retention(terminal: &mut Terminal<impl Backend>) -> Result<Option<f64>> {
+    fn parse_desired_retention(input: &str) -> Result<f64> {
+        use std::str::FromStr;
+        let number = f64::from_str(input)?;
+        ensure!(number.is_finite(), "input must be \"normal\" number");
+        ensure!(number > 0.0, "desired retention must be greater than 0%");
+        ensure!(number < 1.0, "desired retention must be less than 100%");
+        Ok(number)
+    }
+
+    let (result_kind, user_input) = ratatui_inputs::get_text_input(&mut |styled, raw| {
+        let layout = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([Constraint::Fill(1), Constraint::Fill(1)]);
+        terminal
+            .draw(|f| {
+                let layout = layout.split(f.area());
+
+                let input_block = ratatui::widgets::Block::bordered()
+                    .border_type(ratatui::widgets::BorderType::Rounded);
+                let input_area = input_block.inner(layout[0]);
+                let support_block = ratatui::widgets::Block::new().padding(Padding::uniform(1));
+                let support_area = support_block.inner(layout[1]);
+
+                f.render_widget(input_block, layout[0]);
+                f.render_widget(
+                    ratatui::widgets::Paragraph::new(styled).wrap(Wrap { trim: true }),
+                    input_area,
+                );
+                f.render_widget(support_block, layout[1]);
+
+                let support_text = match parse_desired_retention(raw) {
+                    Ok(number) => format!("{:.2}%", number * 100.),
+                    Err(err) => format!("Error: {err}."),
+                };
+                f.render_widget(ratatui::widgets::Paragraph::new(support_text), support_area);
+            })
+            .map(|_| ())
+    })?;
+    match result_kind {
+        ResultKind::Ok => Ok(user_input.parse().ok()),
+        ResultKind::Canceled => Ok(None),
+        _ => unreachable!(),
+    }
+}
+
+fn create_task(terminal: &mut Terminal<impl Backend>) -> Result<Option<CorrectBlocks>> {
+    Ok(ratatui_inputs::get_blocks(&mut |styled, support_text| {
+        let layout = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([Constraint::Fill(1), Constraint::Fill(1)]);
+        terminal
+            .draw(|f| {
+                let layout = layout.split(f.area());
+
+                let input_block = ratatui::widgets::Block::bordered()
+                    .border_type(ratatui::widgets::BorderType::Rounded);
+                let input_area = input_block.inner(layout[0]);
+
+                let support_block = ratatui::widgets::Block::new().padding(Padding::uniform(1));
+                let support_area = support_block.inner(layout[1]);
+
+                f.render_widget(input_block, layout[0]);
+                f.render_widget(
+                    ratatui::widgets::Paragraph::new(styled).wrap(Wrap { trim: true }),
+                    input_area,
+                );
+                f.render_widget(support_block, layout[1]);
+                f.render_widget(ratatui::widgets::Paragraph::new(support_text), support_area);
+            })
+            .map(|_| ())
+    })?)
+}
+
+fn complete_task(storage: &mut Facade, terminal: &mut Terminal<CrosstermBackend<std::io::Stdout>>) {
     let _ = storage.complete_task(&mut |id, blocks| {
         let (_result_kind, answer) = ratatui_inputs::get_input(blocks, &mut |mut text| {
             use ratatui::style::Stylize;
