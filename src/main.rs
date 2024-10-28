@@ -33,11 +33,13 @@ fn main() -> Result<ExitCode> {
     let args = Args::parse();
 
     const DEFAULT_DESIRED_RETENTION: f64 = 0.85;
-    let file = std::fs::read_to_string(PATH);
-    let mut storage: Facade = if let Ok(file) = &file {
-        serde_json::from_str(file)?
-    } else {
-        Facade::new("test_name".into(), DEFAULT_DESIRED_RETENTION)
+    let mut storage = {
+        if std::fs::exists(PATH)? {
+            let file = Box::new(std::fs::read_to_string(PATH)?).leak();
+            serde_json::from_str(file)?
+        } else {
+            Facade::new("test_name".into(), DEFAULT_DESIRED_RETENTION)
+        }
     };
 
     let success = if let Some(action) = args.action {
@@ -110,8 +112,8 @@ fn application(storage: &mut Facade) -> Result<()> {
                 }),
                 "create task".into(),
                 format!(
-                    "desired retention ({}%)",
-                    storage.get_desired_retention() * 100.
+                    "desired retention ({:.0}%)",
+                    (storage.get_desired_retention() * 100.).floor()
                 ),
                 "save".into(),
             ])];

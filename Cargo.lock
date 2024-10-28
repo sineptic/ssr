@@ -2837,9 +2837,9 @@ dependencies = [
 
 [[package]]
 name = "ssr-facade"
-version = "0.9.1"
+version = "0.9.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "255abcaee6e907c11a3ec4d7fd63ea56b8efdca6687cf9c0758962dbb0ec1486"
+checksum = "cec43d0ad03235144b07fe1ed1b5775ee6551780de28b1fd89c04ed6f73f0f95"
 dependencies = [
  "itertools 0.13.0",
  "rand",
