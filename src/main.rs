@@ -5,7 +5,7 @@ use ratatui::{
     Terminal,
 };
 use ratatui_inputs::ResultKind;
-use s_text_input_f_parser::CorrectBlocks;
+use s_text_input_f::BlocksWithAnswer;
 use ssr_core::tasks_facade::TasksFacade;
 use std::{
     io::{stdout, Write},
@@ -39,11 +39,6 @@ fn main() -> Result<ExitCode> {
     } else {
         Facade::new("test_name".into(), DEFAULT_DESIRED_RETENTION)
     };
-
-    // storage
-    //     .complete_task(&mut |_id, _text| Ok(vec![vec!["world".into()]]))
-    //     .unwrap();
-    // let success = true;
 
     let success = if let Some(action) = args.action {
         match action {
@@ -144,10 +139,8 @@ fn application(storage: &mut Facade) -> Result<()> {
                 complete_task(storage, &mut terminal);
             }
             Submenu::CreateTask => {
-                let correct_blocks = create_task(&mut terminal)?;
-                if let Some(task) = correct_blocks {
-                    let task = Task::new(task.blocks, task.answer);
-                    storage.insert(task);
+                if let Some(blocks_with_answer) = get_blocks_with_answer(&mut terminal)? {
+                    storage.create_task(blocks_with_answer);
                 }
             }
             Submenu::ModifyDesiredRetention => {
@@ -193,7 +186,7 @@ fn get_desired_retention(terminal: &mut Terminal<impl Backend>) -> Result<Option
                 );
                 f.render_widget(support_block, layout[1]);
 
-                let support_text = match parse_desired_retention(raw) {
+                let support_text = match parse_desired_retention(&raw) {
                     Ok(number) => format!("{:.2}%", number * 100.),
                     Err(err) => format!("Error: {err}."),
                 };
@@ -208,7 +201,9 @@ fn get_desired_retention(terminal: &mut Terminal<impl Backend>) -> Result<Option
     }
 }
 
-fn create_task(terminal: &mut Terminal<impl Backend>) -> Result<Option<CorrectBlocks>> {
+fn get_blocks_with_answer(
+    terminal: &mut Terminal<impl Backend>,
+) -> Result<Option<BlocksWithAnswer>> {
     Ok(ratatui_inputs::get_blocks(&mut |styled, support_text| {
         let layout = Layout::default()
             .direction(Direction::Horizontal)
