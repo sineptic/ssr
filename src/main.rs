@@ -86,6 +86,7 @@ enum Submenu {
     CompleteTask,
     CreateTask,
     ModifyDesiredRetention,
+    Optimize,
     Save,
 }
 
@@ -115,9 +116,9 @@ fn application(storage: &mut Facade) -> Result<()> {
                     "desired retention ({:.0}%)",
                     (storage.get_desired_retention() * 100.).floor()
                 ),
+                "optimize".into(),
                 "save".into(),
             ])];
-            // TODO: optimize params
             let (result_kind, answer) = ratatui_inputs::get_input(request, &mut |text| {
                 terminal
                     .draw(|f| f.render_widget(Paragraph::new(text), f.area()))
@@ -133,6 +134,7 @@ fn application(storage: &mut Facade) -> Result<()> {
                 Submenu::CompleteTask,
                 Submenu::CreateTask,
                 Submenu::ModifyDesiredRetention,
+                Submenu::Optimize,
                 Submenu::Save,
             ][answer]
         };
@@ -148,6 +150,14 @@ fn application(storage: &mut Facade) -> Result<()> {
             Submenu::ModifyDesiredRetention => {
                 if let Some(desired_retention) = get_desired_retention(&mut terminal)? {
                     storage.set_desired_retention(desired_retention);
+                }
+            }
+            Submenu::Optimize => {
+                terminal.draw(|f| {
+                    f.render_widget(ratatui::widgets::Paragraph::new("Optimizing"), f.area());
+                })?;
+                if let Err(err) = storage.optimize() {
+                    todo!()
                 }
             }
             Submenu::Save => save(PATH, storage)?,
