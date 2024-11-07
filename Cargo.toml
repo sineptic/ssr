@@ -8,7 +8,7 @@ crossterm = "0.28"
 alternate_screen_wrapper = { version = "0.1", features = ["crossterm"]}
 ratatui = "0.29"
 
-ratatui_inputs = { version = "0.2", features = ["fast_select_with_enter"] }
+# ratatui_inputs = { version = "0.2", features = ["fast_select_with_enter"] }
 s_text_input_f = "0.3"
 s_text_input_f-parser = "0.2"
 anyhow = "1"
@@ -22,3 +22,7 @@ ssr-facade = "0.10"
 # ssr-core = { path = "../ssr-core/" }
 # ssr-algorithms = { path = "../ssr-algorithms/" }
 # ssr-facade = { path = "../ssr-facade/" }
+
+[dependencies.ratatui_inputs]
+version = "0.2"
+features = ["fast_select_with_enter"]
