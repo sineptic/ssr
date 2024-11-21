@@ -1,4 +1,10 @@
+use std::{
+    io::{stdout, Write},
+    process::ExitCode,
+};
+
 use anyhow::{ensure, Result};
+use clap::{Parser, Subcommand};
 use ratatui::{
     prelude::{CrosstermBackend, *},
     widgets::*,
@@ -7,15 +13,10 @@ use ratatui::{
 use ratatui_inputs::ResultKind;
 use s_text_input_f::BlocksWithAnswer;
 use ssr_core::tasks_facade::TasksFacade;
-use std::{
-    io::{stdout, Write},
-    process::ExitCode,
-};
 
 type Task = ssr_algorithms::fsrs::Task;
 type Facade<'a> = ssr_facade::Facade<'a, Task>;
 
-use clap::{Parser, Subcommand};
 #[derive(Parser, Debug)]
 struct Args {
     #[command(subcommand)]
